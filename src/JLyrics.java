@@ -1,21 +1,34 @@
-import java.io.FileWriter;
+import java.io.File;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 
 public class JLyrics {
 
-    public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
+    public static String getLyrics(String artist, String title, boolean sync) {
+        try {
 
-        if (args.length < 2) System.out.println("Usage: JLyrics <artist_name> <song_name> [lyrics_file]");
-        String syncLyrics = LRCFinder.findSyncLyrics(args[0], args[1]);
+            return LyricsFinder.findLyrics(artist, title, sync);
 
-        if (args.length > 2) {
-
-            FileWriter writer = new FileWriter(args[2]);
-            writer.write(syncLyrics);
-            writer.close();
-            return;
+        } catch (IOException | NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return "";
         }
-        System.out.println(syncLyrics);
+    }
+
+    public static HashMap<Integer, String> getSyncLyrics(String artist, String title) {
+        return LRCParser.parseSynchronisedLyrics(getLyrics(artist, title, true));
+    }
+
+    public static HashMap<Integer, String> getSyncLyrics(String lyrics) {
+        return LRCParser.parseSynchronisedLyrics(lyrics);
+    }
+
+    public static HashMap<Integer, String> getSyncLyrics(File file) throws IOException {
+        return LRCParser.parseSynchronisedLyrics(file);
+    }
+
+    public static void writeSyncLyrics(HashMap<Integer, String> lyrics, File out) throws IOException {
+        LRCParser.writeSyncLyrics(lyrics, out);
     }
 }
