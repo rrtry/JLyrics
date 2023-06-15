@@ -16,6 +16,17 @@ public class JLyrics {
         }
     }
 
+    public static String[] getLyrics(String artist, String title) {
+        try {
+
+            return LyricsFinder.findLyrics(artist, title);
+
+        } catch (IOException | NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return new String[] { "", "" };
+        }
+    }
+
     public static HashMap<Integer, String> getSyncLyrics(String artist, String title) {
         return LRCParser.parseSynchronisedLyrics(getLyrics(artist, title, true));
     }

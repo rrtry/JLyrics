@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,12 +28,16 @@ class LyricsFinder {
         );
     }
 
-    private static String searchQuery(String searchQuery, boolean syncLyrics) throws IOException, NoSuchAlgorithmException {
+    public static String[] findLyrics(String artist, String title) throws IOException, NoSuchAlgorithmException {
+        return searchQuery(
+                String.format(XML_HEADER, artist, title, CLIENT_TAG +
+                        String.format(SEARCH_QUERY_PAGE, 0))
+        );
+    }
 
-        BufferedReader reader;
-        HttpURLConnection urlConnection;
+    private static String getAPIResponse(String searchQuery) throws IOException, NoSuchAlgorithmException {
 
-        urlConnection = (HttpURLConnection) new URL(API_URL).openConnection();
+        HttpURLConnection urlConnection = (HttpURLConnection) new URL(API_URL).openConnection();
         urlConnection.setConnectTimeout(10 * 1000);
         urlConnection.setRequestProperty("User-Agent", CLIENT_USER_AGENT);
         urlConnection.setDoOutput(true);
@@ -46,7 +51,7 @@ class LyricsFinder {
             return "";
         }
 
-        reader = new BufferedReader(
+        BufferedReader reader = new BufferedReader(
                 new InputStreamReader(urlConnection.getInputStream(), "ISO_8859_1")
         );
 
@@ -57,14 +62,18 @@ class LyricsFinder {
         while ((read = reader.read(buffer, 0, buffer.length)) > 0) {
             builder.append(buffer, 0, read);
         }
+
         reader.close();
+        return builder.toString();
+    }
 
-        String lyrics = getLyricsURL(decryptResultXML(builder.toString()), syncLyrics);
-        if (lyrics.isEmpty()) return lyrics;
+    private static String readLRCFromURL(String lrcURL) throws IOException {
 
-        urlConnection = (HttpURLConnection) new URL(lyrics).openConnection();
+        if (lrcURL.isEmpty()) return lrcURL;
+
+        HttpURLConnection urlConnection = (HttpURLConnection) new URL(lrcURL).openConnection();
         urlConnection.setRequestProperty("User-Agent", CLIENT_USER_AGENT);
-        reader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
 
         String lyricsLine;
         StringBuilder sb = new StringBuilder();
@@ -74,6 +83,24 @@ class LyricsFinder {
 
         reader.close();
         return sb.toString();
+    }
+
+    private static String searchQuery(String searchQuery, boolean syncLyrics) throws IOException, NoSuchAlgorithmException {
+
+        String response = getAPIResponse(searchQuery);
+        String lyrics   = getLyricsURL(decryptResultXML(response), syncLyrics);
+        if (lyrics.isEmpty()) return lyrics;
+
+        return readLRCFromURL(lyrics);
+    }
+
+    private static String[] searchQuery(String searchQuery) throws IOException, NoSuchAlgorithmException {
+
+        String response     = decryptResultXML(getAPIResponse(searchQuery));
+        String syncLyrics   = getLyricsURL(response, true);
+        String unsyncLyrics = getLyricsURL(response, false);
+
+        return new String[] { readLRCFromURL(syncLyrics), readLRCFromURL(unsyncLyrics) };
     }
 
     private static byte[] assembleQuery(byte[] value) throws NoSuchAlgorithmException, IOException {
@@ -129,7 +156,7 @@ class LyricsFinder {
         ArrayList<String> links = new ArrayList<>();
 
         String url  = "";
-        String link = "";
+        String link;
 
         Pattern pattern = Pattern.compile("^(.+)\\/([^\\/]+)$");
         for (int i = 0; i < parts.length; i++) {
