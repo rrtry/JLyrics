@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="JLyrics:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/JLyrics_jar</output-path>
+    <root id="archive" name="JLyrics.jar">
+      <element id="module-output" name="JLyrics" />
+    </root>
+  </artifact>
+</component>

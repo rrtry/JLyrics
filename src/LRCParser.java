@@ -10,40 +10,30 @@ import java.util.regex.Pattern;
 class LRCParser {
 
     public static void writeSyncLyrics(HashMap<Integer, String> lyrics, File out) throws IOException {
-
-        if (out.isDirectory() || !out.canWrite()) {
-            return;
-        }
-
         SortedSet<Integer> keys = new TreeSet<>(lyrics.keySet());
-        FileWriter fileWriter   = new FileWriter(out);
+        try (FileWriter fileWriter = new FileWriter(out)) {
+            for (Integer timestamp : keys) {
 
-        for (Integer timestamp : keys) {
+                int minutes = timestamp / 1000 / 60;
+                int seconds = (timestamp / 1000) % 60;
+                int millis  = timestamp % 1000;
 
-            int minutes = timestamp / 1000 / 60;
-            int seconds = (timestamp / 1000) % 60;
-            int millis  = timestamp % 1000;
-
-            String line = String.format("[%02d:%02d.%02d]%s", minutes, seconds, millis, lyrics.get(timestamp));
-            if (line.charAt(line.length() - 1) != '\n') line += '\n';
-            fileWriter.write(line);
+                String line = String.format("[%02d:%02d.%02d]%s", minutes, seconds, millis, lyrics.get(timestamp));
+                if (line.charAt(line.length() - 1) != '\n') line += '\n';
+                fileWriter.write(line);
+            }
         }
-        fileWriter.close();
     }
 
     public static HashMap<Integer, String> parseSynchronisedLyrics(File file) throws IOException {
+        try (FileInputStream in = new FileInputStream(file)) {
 
-        if (!file.isFile() || !file.canRead()) {
-            return new HashMap<>();
+            byte[] buff = new byte[in.available()];
+            in.read(buff);
+            in.close();
+
+            return parseSynchronisedLyrics(new String(buff, StandardCharsets.UTF_8));
         }
-
-        FileInputStream in = new FileInputStream(file);
-        byte[] buff        = new byte[in.available()];
-
-        in.read(buff);
-        in.close();
-
-        return parseSynchronisedLyrics(new String(buff, StandardCharsets.UTF_8));
     }
 
     public static HashMap<Integer, String> parseSynchronisedLyrics(String lyrics) {
